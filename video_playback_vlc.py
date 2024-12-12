@@ -40,6 +40,7 @@ def start_video_playback():
 def loop_on_processing_queue():
     try:
         while True:
+            time.sleep(0.1)
             process_queue()
     except KeyboardInterrupt:
         print("Exited")

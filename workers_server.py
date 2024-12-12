@@ -1,4 +1,4 @@
-import socket, json
+import socket, json, time
 
 
 
@@ -14,6 +14,7 @@ def start_server(message_queue):
     while True:
         data = conn.recv(1024).decode('utf-8')
         if not len(data):
+            time.sleep(0.1)
             continue
         if data == "EXIT":
             print("Exiting server...")
