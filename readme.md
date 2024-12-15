@@ -1,4 +1,4 @@
-### Workers for the Wav2Lip_with_cache
+# Workers for the Wav2Lip_with_cache
 
 Run the 2 workers on your local machine, and eventually capture the output of the video_playback window via OBS, for a happy anonymous livestream :)
 
