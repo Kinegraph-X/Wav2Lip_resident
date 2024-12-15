@@ -1,29 +1,70 @@
-
-import socket
+from args_parser import args
+import os, platform, socket, cv2
 import subprocess, time, json
+import requests
 import record_audio
-import argparse
+from hparams import hparams
 
 from keyboard_listener import keyboard_listener
+from deserializer import deserialize
 
-parser = argparse.ArgumentParser(description='Worker which records an audio file from the mic, sneds it to a Google Notebook and retrieve the result of the computation')
-parser.add_argument('--ngrok_addr', type=str, 
-					help='A Ngrok tunnel may have been started from that Public URL',
-                    required=False,
-                    default='http://localhost:3000'
-                    )
-args = parser.parse_args()
-
-server_path = "/content/Wav2Lip_with_cache/output/"
+server_path = "content/Wav2Lip_with_cache/output/"
 media_folder = "media/"
 outfile = "lipsynced_avatar.mp4"
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+def remux_audio():
+    output_path = hparams.output_video_path
+    command = 'ffmpeg -nostdin -y -i {} -i {} -strict -2 -q:v 1 {}'.format(hparams.local_audio_filename, 'temp/result.avi', output_path)
+    print(command)
+    subprocess.call(command, shell=platform.system() != 'Windows', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    # subprocess.call(command, shell=platform.system() != 'Windows', stderr=subprocess.STDOUT)
+    print(f'Video file saved to {output_path}')
+
+def handle_img_batch(outfile_writer, images):
+    # reconstruct numpy array
+    # print(type(images))
+    images = deserialize(images)
+    for img in images:
+        outfile_writer.write(img)
+
 def send_messages():
-    
+
     ngrok_url = args.ngrok_addr
 
+    temp_videofile = 'temp/result.avi'
+    if os.path.exists(temp_videofile):
+        os.remove(temp_videofile)
+    outfile_writer = cv2.VideoWriter(temp_videofile, cv2.VideoWriter_fourcc(*'DIVX'), hparams.fps, hparams.resolution)
+
+    # small hack to allow local testing
+    if (args.ngrok_addr == 'http://localhost:3000'):
+        server_path = "output/"
+    
+    while True:
+        response = requests.get(ngrok_url, params = {"next_batch" : 'True'})
+        # print(f'type of content :{type(response.content)}')
+        content_type = response.headers.get('content-type').split(";")[0].lower()
+        # print(f'content_type {content_type}')
+        if content_type == 'text/html':
+            print(content_type, response.content)
+        if content_type == 'text/plain':
+            # print(content_type, response.content)
+            if response.content == b"processing_ended":
+                print('received ended processing')
+                outfile_writer.release()
+                remux_audio()
+                break
+            elif response.content == b"long_polling_timeout":
+                print('long_polling timeout')
+                continue
+        elif content_type == 'application/octet-stream':
+            print('octet-stream returned')
+            handle_img_batch(outfile_writer, response.content)
+
+    print('transmission ended')
+    """
     command = (f'Invoke-WebRequest \
                 -Uri "{ngrok_url}" \
                 -Method POST \
@@ -44,26 +85,11 @@ def send_messages():
         "pwsh", 
         "-Command",
         command])
+    """
 
     data = {"processed_file": f"media/{outfile}"}
     serialized_data = json.dumps(data).encode('utf-8')
     client.sendall(serialized_data)
-
-    """
-
-    # Simulate sending messages
-    time.sleep(5)
-    client.sendall(b"processed_video.mp4")
-    print("Sent 'processed_video.mp4'.")
-
-    time.sleep(5)
-    client.sendall(b"another_video.mp4")
-    print("Sent 'another_video.mp4'.")
-
-    time.sleep(5)
-    client.sendall(b"EXIT")
-    print("Sent 'EXIT'.")
-    """
 
 def listen_indefinitely():
     try:
@@ -80,12 +106,12 @@ def listen_indefinitely():
 if __name__ == "__main__":
     
     keyboard_listener()
-
+    # """
     try:
         client.connect(("localhost", 9999))
         print("Connected to server.")
     except KeyboardInterrupt:
         client.close()
-
+    # """
     listen_indefinitely()
     

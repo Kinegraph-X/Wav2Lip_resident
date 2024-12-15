@@ -19,10 +19,14 @@ class HParams:
 # Default hyperparameters
 hparams = HParams(
 
+	fps = 25,
+	resolution = (480, 270),
 	media_folder = "media/",
 	ffmpeg_path="ffmpeg/bin/",
+	local_audio_filename = "recordings/output.wav",
 	static_video_file_path="media/Avatar_Small_Master.mp4", # Avatar_Small_Master
 	test_video_file="media/lipsynced_avatar.mp4",
+	output_video_path = "media/lipsynced_avatar.mp4",
 	audio_only_path = 'media/audio_only_lipsynced.wav'
 )
 
