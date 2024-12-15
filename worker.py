@@ -1,6 +1,7 @@
 from args_parser import args
 import os, platform, socket, cv2
 import subprocess, time, json
+from Thread_with_return_value import ThreadWithReturnValue
 import requests
 import record_audio
 from hparams import hparams
@@ -29,6 +30,27 @@ def handle_img_batch(outfile_writer, images):
     for img in images:
         outfile_writer.write(img)
 
+def poll_server(ngrok_url, outfile_writer):
+    response = requests.get(ngrok_url, params = {"next_batch" : 'True'})
+    # print(f'type of content :{type(response.content)}')
+    content_type = response.headers.get('content-type').split(";")[0].lower()
+    # print(f'content_type {content_type}')
+    if content_type == 'text/html':
+        print(content_type, response.content)
+    if content_type == 'text/plain':
+        # print(content_type, response.content)
+        if response.content == b"processing_ended":
+            print('received ended processing')
+            outfile_writer.release()
+            remux_audio()
+            return 'break'
+        elif response.content == b"long_polling_timeout":
+            print('long_polling timeout')
+            return 'continue'
+    elif content_type == 'application/octet-stream':
+        print('octet-stream returned')
+        handle_img_batch(outfile_writer, response.content)
+
 def send_messages():
 
     ngrok_url = args.ngrok_addr
@@ -43,25 +65,14 @@ def send_messages():
         server_path = "output/"
     
     while True:
-        response = requests.get(ngrok_url, params = {"next_batch" : 'True'})
-        # print(f'type of content :{type(response.content)}')
-        content_type = response.headers.get('content-type').split(";")[0].lower()
-        # print(f'content_type {content_type}')
-        if content_type == 'text/html':
-            print(content_type, response.content)
-        if content_type == 'text/plain':
-            # print(content_type, response.content)
-            if response.content == b"processing_ended":
-                print('received ended processing')
-                outfile_writer.release()
-                remux_audio()
-                break
-            elif response.content == b"long_polling_timeout":
-                print('long_polling timeout')
-                continue
-        elif content_type == 'application/octet-stream':
-            print('octet-stream returned')
-            handle_img_batch(outfile_writer, response.content)
+        request_thread = ThreadWithReturnValue(target = poll_server, args = (ngrok_url, outfile_writer))
+        request_thread.start()
+        return_value = request_thread.join()
+        if return_value == 'break':
+            break
+        elif return_value == 'continue':
+             continue
+
 
     print('transmission ended')
     """
