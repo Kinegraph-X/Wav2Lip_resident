@@ -22,7 +22,7 @@ To use it with the Wav2Lip_with_cache running on your machine, in another shell,
 python worker.py
 ```
 
-If your using tunnelling, specify the URL of the tunnel :
+If you're using tunnelling (or any distant server), specify the URL of the server/tunnel :
 ```shell
 python worker.py --ngrok_addr "your_ngrok_endpoint.app"
 ```
