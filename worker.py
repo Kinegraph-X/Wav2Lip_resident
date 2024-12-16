@@ -14,7 +14,7 @@ from deserializer import deserialize
 server_path = "content/Wav2Lip_with_cache/output/"
 media_folder = "media/"
 outfile = hparams.test_video_file.split("/")[-1]
-print(outfile)
+temp_videofile = hparams.temp_video_file
 req_args = namedtuple('req_args', ('url', 'params'))
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -23,7 +23,7 @@ start_time = 0
 
 def remux_audio():
     output_path = hparams.output_video_path
-    command = 'ffmpeg -nostdin -y -i {} -i {} -strict -2 -c:v copy {}'.format(hparams.local_audio_filename, 'temp/result.avi', output_path)
+    command = 'ffmpeg -nostdin -y -i {} -i {} -strict -2 -c:v copy {}'.format(hparams.local_audio_filename, temp_videofile, output_path)
     print(command)
     subprocess.call(command, shell=platform.system() != 'Windows', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     # subprocess.call(command, shell=platform.system() != 'Windows', stderr=subprocess.STDOUT)
@@ -69,7 +69,6 @@ def send_messages():
 
     ngrok_url = args.ngrok_addr
 
-    temp_videofile = 'temp/result.avi'
     if os.path.exists(temp_videofile):
         os.remove(temp_videofile)
     outfile_writer = cv2.VideoWriter(temp_videofile, cv2.VideoWriter_fourcc(*'FMP4'), hparams.fps, hparams.resolution)
