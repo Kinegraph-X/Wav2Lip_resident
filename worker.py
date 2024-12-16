@@ -11,8 +11,9 @@ from hparams import hparams
 from keyboard_listener import keyboard_listener
 from deserializer import deserialize
 
+outfile_writer = None
 server_path = "content/Wav2Lip_with_cache/output/"
-media_folder = "media/"
+media_folder = hparams.media_folder
 outfile = hparams.test_video_file.split("/")[-1]
 temp_videofile = hparams.temp_video_file
 req_args = namedtuple('req_args', ('url', 'params'))
@@ -29,16 +30,19 @@ def remux_audio():
     # subprocess.call(command, shell=platform.system() != 'Windows', stderr=subprocess.STDOUT)
     print(f'Video file saved to {output_path}')
 
-def handle_img_batch(outfile_writer, images):
-    global start_time
+def handle_img_batch(images):
+    global start_time, outfile_writer
+    start_time = time.perf_counter()
     # reconstruct numpy array
     images = deserialize(images)
+    if not outfile_writer:
+         outfile_writer = cv2.VideoWriter(temp_videofile, cv2.VideoWriter_fourcc(*'FMP4'), hparams.fps, (images.shape[2], images.shape[1]))
     for img in images:
         outfile_writer.write(img)
     print(f'Writing file took {time.perf_counter() - start_time}')
 
-def poll_server(ngrok_url, outfile_writer):
-    global start_time
+def poll_server(ngrok_url):
+    global start_time, outfile_writer
     start_time = time.perf_counter()
 
     # threading requests may not be necessary, but let's keep that principle as an example in our codebase
@@ -54,7 +58,7 @@ def poll_server(ngrok_url, outfile_writer):
     if content_type == 'text/plain':
         # print(content_type, response.content)
         if response.content == b"processing_ended":
-            print('received ended processing')
+            print('received "ended processing"')
             outfile_writer.release()
             remux_audio()
             return 'break'
@@ -63,7 +67,7 @@ def poll_server(ngrok_url, outfile_writer):
             return 'continue'
     elif content_type == 'application/octet-stream':
         print('octet-stream returned')
-        handle_img_batch(outfile_writer, response.content)
+        handle_img_batch(response.content)
 
 def send_messages():
 
@@ -78,8 +82,9 @@ def send_messages():
         server_path = "output/"
     
     while True:
-        return_value = poll_server(ngrok_url, outfile_writer)
+        return_value = poll_server(ngrok_url)
         if return_value == 'break':
+            outfile_writer = None
             break
         elif return_value == 'continue':
              continue
