@@ -1,8 +1,11 @@
 from args_parser import args
 import os, platform, socket, cv2
 import subprocess, time, json
+from collections import namedtuple
+
 from Thread_with_return_value import ThreadWithReturnValue
 import requests
+session = requests.session()
 import record_audio
 from hparams import hparams
 
@@ -12,8 +15,11 @@ from deserializer import deserialize
 server_path = "content/Wav2Lip_with_cache/output/"
 media_folder = "media/"
 outfile = "lipsynced_avatar.mp4"
+req_args = namedtuple('req_args', 'url params')
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+start_time = 0
 
 def remux_audio():
     output_path = hparams.output_video_path
@@ -24,16 +30,28 @@ def remux_audio():
     print(f'Video file saved to {output_path}')
 
 def handle_img_batch(outfile_writer, images):
+    global start_time
     # reconstruct numpy array
     # print(type(images))
     images = deserialize(images)
     for img in images:
         outfile_writer.write(img)
+    # print(f'Writing file took {time.perf_counter() - start_time}')
 
 def poll_server(ngrok_url, outfile_writer):
-    response = requests.get(ngrok_url, params = {"next_batch" : 'True'})
+    global start_time
+    # start_time = time.perf_counter()
+
+    # threading requests may not be necessary, but let's keep that principle as an example in our codebase
+    request_thread = ThreadWithReturnValue(target = requests.get, args = req_args(ngrok_url, {"next_batch" : 'True'}))
+    request_thread.start()
+    response = request_thread.join()
+
+    # response = requests.get(ngrok_url, params = {"next_batch" : 'True'})
     # print(f'type of content :{type(response.content)}')
     content_type = response.headers.get('content-type').split(";")[0].lower()
+    # print(f'receiving response took {time.perf_counter() - start_time}')
+    
     # print(f'content_type {content_type}')
     if content_type == 'text/html':
         print(content_type, response.content)
@@ -65,9 +83,12 @@ def send_messages():
         server_path = "output/"
     
     while True:
+        """
         request_thread = ThreadWithReturnValue(target = poll_server, args = (ngrok_url, outfile_writer))
         request_thread.start()
         return_value = request_thread.join()
+        """
+        return_value = poll_server(ngrok_url, outfile_writer)
         if return_value == 'break':
             break
         elif return_value == 'continue':
