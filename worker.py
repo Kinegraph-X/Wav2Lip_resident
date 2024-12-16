@@ -5,7 +5,6 @@ from collections import namedtuple
 
 from Thread_with_return_value import ThreadWithReturnValue
 import requests
-session = requests.session()
 import record_audio
 from hparams import hparams
 
@@ -23,10 +22,10 @@ start_time = 0
 
 def remux_audio():
     output_path = hparams.output_video_path
-    command = 'ffmpeg -nostdin -y -i {} -i {} -strict -2 -q:v 1 {}'.format(hparams.local_audio_filename, 'temp/result.avi', output_path)
+    command = 'ffmpeg -nostdin -y -i {} -i {} -strict -2 -c:v copy {}'.format(hparams.local_audio_filename, 'temp/result.avi', output_path)
     print(command)
-    subprocess.call(command, shell=platform.system() != 'Windows', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-    # subprocess.call(command, shell=platform.system() != 'Windows', stderr=subprocess.STDOUT)
+    # subprocess.call(command, shell=platform.system() != 'Windows', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    subprocess.call(command, shell=platform.system() != 'Windows', stderr=subprocess.STDOUT)
     print(f'Video file saved to {output_path}')
 
 def handle_img_batch(outfile_writer, images):
@@ -36,11 +35,11 @@ def handle_img_batch(outfile_writer, images):
     images = deserialize(images)
     for img in images:
         outfile_writer.write(img)
-    # print(f'Writing file took {time.perf_counter() - start_time}')
+    print(f'Writing file took {time.perf_counter() - start_time}')
 
 def poll_server(ngrok_url, outfile_writer):
     global start_time
-    # start_time = time.perf_counter()
+    start_time = time.perf_counter()
 
     # threading requests may not be necessary, but let's keep that principle as an example in our codebase
     request_thread = ThreadWithReturnValue(target = requests.get, args = req_args(ngrok_url, {"next_batch" : 'True'}))
@@ -50,7 +49,7 @@ def poll_server(ngrok_url, outfile_writer):
     # response = requests.get(ngrok_url, params = {"next_batch" : 'True'})
     # print(f'type of content :{type(response.content)}')
     content_type = response.headers.get('content-type').split(";")[0].lower()
-    # print(f'receiving response took {time.perf_counter() - start_time}')
+    print(f'receiving response took {time.perf_counter() - start_time}')
     
     # print(f'content_type {content_type}')
     if content_type == 'text/html':
@@ -76,7 +75,7 @@ def send_messages():
     temp_videofile = 'temp/result.avi'
     if os.path.exists(temp_videofile):
         os.remove(temp_videofile)
-    outfile_writer = cv2.VideoWriter(temp_videofile, cv2.VideoWriter_fourcc(*'DIVX'), hparams.fps, hparams.resolution)
+    outfile_writer = cv2.VideoWriter(temp_videofile, cv2.VideoWriter_fourcc(*'FMP4'), hparams.fps, hparams.resolution)
 
     # small hack to allow local testing
     if (args.ngrok_addr == 'http://localhost:3000'):
