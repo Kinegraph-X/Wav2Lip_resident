@@ -6,13 +6,6 @@ import record_audio
 # A flag to control the processing
 processing = False
 
-# The processing function
-def process():
-    while processing:
-        print("Recording audio...")
-        # Replace this with your processing logic
-        time.sleep(1)  # Simulate a task
-
 # Function to start processing when the key is pressed
 def start_processing(event):
     global processing

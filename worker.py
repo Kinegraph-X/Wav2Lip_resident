@@ -13,8 +13,9 @@ from deserializer import deserialize
 
 server_path = "content/Wav2Lip_with_cache/output/"
 media_folder = "media/"
-outfile = "lipsynced_avatar.mp4"
-req_args = namedtuple('req_args', 'url params')
+outfile = hparams.test_video_file.split("/")[-1]
+print(outfile)
+req_args = namedtuple('req_args', ('url', 'params'))
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -24,14 +25,13 @@ def remux_audio():
     output_path = hparams.output_video_path
     command = 'ffmpeg -nostdin -y -i {} -i {} -strict -2 -c:v copy {}'.format(hparams.local_audio_filename, 'temp/result.avi', output_path)
     print(command)
-    # subprocess.call(command, shell=platform.system() != 'Windows', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-    subprocess.call(command, shell=platform.system() != 'Windows', stderr=subprocess.STDOUT)
+    subprocess.call(command, shell=platform.system() != 'Windows', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    # subprocess.call(command, shell=platform.system() != 'Windows', stderr=subprocess.STDOUT)
     print(f'Video file saved to {output_path}')
 
 def handle_img_batch(outfile_writer, images):
     global start_time
     # reconstruct numpy array
-    # print(type(images))
     images = deserialize(images)
     for img in images:
         outfile_writer.write(img)
@@ -46,12 +46,9 @@ def poll_server(ngrok_url, outfile_writer):
     request_thread.start()
     response = request_thread.join()
 
-    # response = requests.get(ngrok_url, params = {"next_batch" : 'True'})
-    # print(f'type of content :{type(response.content)}')
     content_type = response.headers.get('content-type').split(";")[0].lower()
     print(f'receiving response took {time.perf_counter() - start_time}')
     
-    # print(f'content_type {content_type}')
     if content_type == 'text/html':
         print(content_type, response.content)
     if content_type == 'text/plain':
@@ -82,11 +79,6 @@ def send_messages():
         server_path = "output/"
     
     while True:
-        """
-        request_thread = ThreadWithReturnValue(target = poll_server, args = (ngrok_url, outfile_writer))
-        request_thread.start()
-        return_value = request_thread.join()
-        """
         return_value = poll_server(ngrok_url, outfile_writer)
         if return_value == 'break':
             break
@@ -95,6 +87,8 @@ def send_messages():
 
 
     print('transmission ended')
+
+    # Old strategy, before streaming upload of the audio: re-implement if you wish
     """
     command = (f'Invoke-WebRequest \
                 -Uri "{ngrok_url}" \
@@ -118,7 +112,7 @@ def send_messages():
         command])
     """
 
-    data = {"processed_file": f"media/{outfile}"}
+    data = {"processed_file": f"{media_folder}{outfile}"}
     serialized_data = json.dumps(data).encode('utf-8')
     client.sendall(serialized_data)
 

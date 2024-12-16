@@ -12,7 +12,6 @@ class VideoPlayer:
         self.root.title("Ask Mini-E_B_U")
 
         self.looping_video_path = looping_video_path
-        # self.lipsynced_video_path = lipsynced_video_path
         self.is_reading_lipsync = False
 
         # Create VLC instance and media player

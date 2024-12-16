@@ -47,17 +47,14 @@ def send_audio_chunks():
     
     """Thread to handle sending audio chunks to the server."""
     while True:
-        # print('loop')
+
         if not audio_queue.empty():
-            # print('not empty')
-            # try:
+
             item = audio_queue.get()  # Get audio from the queue # timeout = .25
-            # print('got item')
 
             if item is None:  # Flush signal
                 break
             audio_chunk, audio_chunk_idx = item
-            # print(f"got chunk {audio_chunk_idx} {len(audio_chunk)}")
 
             headers = {
                 "Content-Type": "application/octet-stream",
@@ -71,30 +68,13 @@ def send_audio_chunks():
 
             req_thread = threading.Thread(target = handle_request, args = (headers, audio_chunk))
             req_thread.start()
-            # req_thread.join()
-            # """
-            # print('before request')
-            # conn.request("POST", '/', body=audio_chunk, headers=headers)
-            # conn.request("GET", "", headers=headers)
-            # response = session.post(url, data=audio_chunk, headers=headers)
-            # print('request sent')
-            # response = conn.getresponse().read()
-            # print(response.content)
-            # audio_queue.task_done()
-            # response.raise_for_status()
-            # """
-            """
-            except Exception as e:
-                print(f"Error sending chunk: {e}")
-            """
+
             print(f"Audio chunks {audio_chunk_idx} sent successfully.")
 
         time.sleep(.1)
 
 def handle_request(headers, audio_chunk):
     response = session.post(url, data=audio_chunk, headers=headers)
-    # print('request sent')
-    # response = conn.getresponse().read()
     print(response.content)
 
 def record_callback(indata, frames, timestamp, status):
@@ -157,8 +137,6 @@ def start_recording():
         try:
             response = session.post( url, data=None, headers=headers)
             print(response.content)
-            # conn.request("POST", url, body=None, headers=headers)
-            # response = conn.getresponse().read()
         except Exception as e:
             print(e.args)
         # """
