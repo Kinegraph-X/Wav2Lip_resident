@@ -4,5 +4,4 @@ recordings/*.*
 temp/*.*
 demo/
 
-!media/Avatar_Small_Master.mp4
 !readme.md

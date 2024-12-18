@@ -81,6 +81,7 @@ def send_messages():
     if (args.ngrok_addr == 'http://localhost:3000'):
         server_path = "output/"
     
+    # """
     while True:
         return_value = poll_server(ngrok_url)
         if return_value == 'break':
@@ -88,8 +89,8 @@ def send_messages():
             break
         elif return_value == 'continue':
              continue
-
-
+    # """
+    
     print('transmission ended')
 
     # Old strategy, before streaming upload of the audio: re-implement if you wish
