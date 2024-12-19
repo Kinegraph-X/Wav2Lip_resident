@@ -5,11 +5,14 @@ from collections import namedtuple
 
 from Thread_with_return_value import ThreadWithReturnValue
 import requests
+session = requests.Session()
 import record_audio
 from hparams import hparams
 
 from keyboard_listener import keyboard_listener
 from deserializer import deserialize
+
+os.environ["OPENCV_LOG_LEVEL"] = "ERROR"
 
 outfile_writer = None
 server_path = "content/Wav2Lip_with_cache/output/"
@@ -46,7 +49,7 @@ def poll_server(ngrok_url):
     start_time = time.perf_counter()
 
     # threading requests may not be necessary, but let's keep that principle as an example in our codebase
-    request_thread = ThreadWithReturnValue(target = requests.get, args = req_args(ngrok_url, {"next_batch" : 'True'}))
+    request_thread = ThreadWithReturnValue(target = session.get, args = (ngrok_url,), kwargs = {"params" : {"next_batch" : 'True'}})
     request_thread.start()
     response = request_thread.join()
 
@@ -70,12 +73,12 @@ def poll_server(ngrok_url):
         handle_img_batch(response.content)
 
 def send_messages():
+    global outfile_writer
 
     ngrok_url = args.ngrok_addr
 
     if os.path.exists(temp_videofile):
         os.remove(temp_videofile)
-    outfile_writer = cv2.VideoWriter(temp_videofile, cv2.VideoWriter_fourcc(*'FMP4'), hparams.fps, hparams.resolution)
 
     # small hack to allow local testing
     if (args.ngrok_addr == 'http://localhost:3000'):
@@ -134,7 +137,6 @@ def listen_indefinitely():
         record_audio.stop_recording.clear()
 
 if __name__ == "__main__":
-    
     keyboard_listener()
     # """
     try:
