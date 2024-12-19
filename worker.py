@@ -39,7 +39,7 @@ def handle_img_batch(images):
     # reconstruct numpy array
     images = deserialize(images)
     if not outfile_writer:
-         outfile_writer = cv2.VideoWriter(temp_videofile, cv2.VideoWriter_fourcc(*'FMP4'), hparams.fps, (images.shape[2], images.shape[1]))
+         outfile_writer = cv2.VideoWriter(temp_videofile, cv2.VideoWriter_fourcc(*'mp4v'), hparams.fps, (images.shape[2], images.shape[1]))
     for img in images:
         outfile_writer.write(img)
     print(f'Writing file took {time.perf_counter() - start_time}')
