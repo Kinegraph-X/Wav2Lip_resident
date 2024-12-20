@@ -24,5 +24,5 @@ python worker.py
 
 If you're using tunnelling (or any distant server), specify the URL of the server/tunnel :
 ```shell
-python worker.py --ngrok_addr "your_ngrok_endpoint.app"
+python worker.py --ngrok_addr "http://your_server_endpoint"
 ```

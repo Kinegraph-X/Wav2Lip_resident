@@ -4,4 +4,5 @@ recordings/*.*
 temp/*.*
 demo/
 
+!Avatar_Small_Local.mp4
 !readme.md

@@ -12,21 +12,22 @@ from hparams import hparams
 from keyboard_listener import keyboard_listener
 from deserializer import deserialize
 
-os.environ["OPENCV_LOG_LEVEL"] = "ERROR"
-
 outfile_writer = None
 server_path = "content/Wav2Lip_with_cache/output/"
 media_folder = hparams.media_folder
-outfile = hparams.test_video_file.split("/")[-1]
 temp_videofile = hparams.temp_video_file
-req_args = namedtuple('req_args', ('url', 'params'))
+
+output_path = hparams.output_video_path
+outfile = output_path.split("/")[-1]
+
+# kept for archive (interesting syntax)
+# req_args = namedtuple('req_args', ('url', 'params'))
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 start_time = 0
 
 def remux_audio():
-    output_path = hparams.output_video_path
     command = 'ffmpeg -nostdin -y -i {} -i {} -strict -2 -c:v copy {}'.format(hparams.local_audio_filename, temp_videofile, output_path)
     print(command)
     subprocess.call(command, shell=platform.system() != 'Windows', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
@@ -36,6 +37,7 @@ def remux_audio():
 def handle_img_batch(images):
     global start_time, outfile_writer
     start_time = time.perf_counter()
+
     # reconstruct numpy array
     images = deserialize(images)
     if not outfile_writer:
@@ -79,10 +81,6 @@ def send_messages():
 
     if os.path.exists(temp_videofile):
         os.remove(temp_videofile)
-
-    # small hack to allow local testing
-    if (args.ngrok_addr == 'http://localhost:3000'):
-        server_path = "output/"
     
     # """
     while True:
@@ -120,7 +118,7 @@ def send_messages():
         command])
     """
 
-    data = {"processed_file": f"{media_folder}{outfile}"}
+    data = {"processed_file": f"{output_path}"}
     serialized_data = json.dumps(data).encode('utf-8')
     client.sendall(serialized_data)
 
