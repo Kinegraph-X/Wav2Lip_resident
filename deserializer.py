@@ -1,7 +1,11 @@
 import numpy as np
 import json
+import zstandard as zstd
 
 def deserialize(payload):
+
+    dctx = zstd.ZstdDecompressor()
+    payload = dctx.decompress(payload)
 
     # Extract metadata
     metadata_length = int.from_bytes(payload[:4], 'big')

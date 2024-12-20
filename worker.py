@@ -56,6 +56,13 @@ def poll_server(ngrok_url):
     response = request_thread.join()
 
     content_type = response.headers.get('content-type').split(";")[0].lower()
+    """
+    encoding = None
+    if response.headers.get('content-encoding'):
+        encoding = response.headers.get('content-encoding').split(";")[0].lower()
+    print(f'content-encoding is {encoding}')
+    """
+
     print(f'receiving response took {time.perf_counter() - start_time}')
     
     if content_type == 'text/html':
