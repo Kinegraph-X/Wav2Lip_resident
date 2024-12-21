@@ -10,7 +10,7 @@ pip install -r requirements.txt
 
 If you're under Windows, ther's a handy batch script to run the workers and ssh into your server (if not already running : needed if you're using an online notebook as a server)
 
-In order to nicelly align the windows, the nircmd (from nirsoft) toolbox needs to be installed on your machine, and the "path" env variable correctly set.
+In order to nicelly align the windows, the [nircmd](https://www.nirsoft.net/utils/nircmd.html) (from nirsoft) toolbox needs to be installed on your machine, and the "path" env variable correctly set.
 
 ```shell
 .\run_avatar_daemon.bat -ngrok_addr="http://your_server_endpoint" -ssh_addr="your server's ssh address"
