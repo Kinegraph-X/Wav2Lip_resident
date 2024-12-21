@@ -39,7 +39,7 @@ It runs the 2 workers on your local machine :
 python video_playback_vlc.py
 ```
 
-If the Wav2Lip_with_cache server is running on your machine, in another shell, it runs :
+If the [Wav2Lip_with_cache](https://github.com/Kinegraph-X/Wav2Lip_with_cache) server is running on your machine, in another shell, it runs :
 
 ```shell
 # 2nd worker
