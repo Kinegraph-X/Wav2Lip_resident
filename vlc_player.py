@@ -9,7 +9,7 @@ class VideoPlayer:
 
     def __init__(self, looping_video_path):
         self.root = tk.Tk()
-        self.root.title("Ask Mini-E_B_U")
+        self.root.title("Ask Mini-Me")
 
         self.looping_video_path = looping_video_path
         self.is_reading_lipsync = False
