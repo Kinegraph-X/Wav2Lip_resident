@@ -1,16 +1,23 @@
 from args_parser import args
 import os, platform, socket, cv2
+import atexit
 import subprocess, time, json
 from collections import namedtuple
 
+from utils.socket_utils import close_client_socket
 from Thread_with_return_value import ThreadWithReturnValue
+
 import requests
+from urllib3.exceptions import MaxRetryError
 session = requests.Session()
+
 import record_audio
 from hparams import hparams
 
 from keyboard_listener import keyboard_listener
 from deserializer import deserialize
+
+from logger import logger
 
 outfile_writer = None
 server_path = "content/Wav2Lip_with_cache/output/"
@@ -19,9 +26,6 @@ temp_videofile = hparams.temp_video_file
 
 output_path = hparams.output_video_path
 outfile = output_path.split("/")[-1]
-
-# kept for archive (interesting syntax)
-# req_args = namedtuple('req_args', ('url', 'params'))
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -32,54 +36,58 @@ def remux_audio():
     print(command)
     subprocess.call(command, shell=platform.system() != 'Windows', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     # subprocess.call(command, shell=platform.system() != 'Windows', stderr=subprocess.STDOUT)
-    print(f'Video file saved to {output_path}')
+    logger.debug(f'Video file saved to {output_path}')
 
 def handle_img_batch(images):
     global start_time, outfile_writer
     start_time = time.perf_counter()
-
-    # reconstruct numpy array
-    images = deserialize(images)
-    if not outfile_writer:
-         outfile_writer = cv2.VideoWriter(temp_videofile, cv2.VideoWriter_fourcc(*'mp4v'), hparams.fps, (images.shape[2], images.shape[1]))
-    for img in images:
-        outfile_writer.write(img)
-    print(f'Writing file took {time.perf_counter() - start_time}')
+    try:
+        # reconstruct numpy array
+        images = deserialize(images)
+        if not outfile_writer:
+            outfile_writer = cv2.VideoWriter(temp_videofile, cv2.VideoWriter_fourcc(*'mp4v'), hparams.fps, (images.shape[2], images.shape[1]))
+        for img in images:
+            outfile_writer.write(img)
+        logger.debug(f'Writing file took {time.perf_counter() - start_time}')
+    except Exception as e:
+        print(e)
 
 def poll_server(ngrok_url):
+    logger.debug('polling server')
     global start_time, outfile_writer
     start_time = time.perf_counter()
 
     # threading requests may not be necessary, but let's keep that principle as an example in our codebase
     request_thread = ThreadWithReturnValue(target = session.get, args = (ngrok_url,), kwargs = {"params" : {"next_batch" : 'True'}})
-    request_thread.start()
-    response = request_thread.join()
+    try:
+        request_thread.start()
+        response = request_thread.join()
+    except (ConnectionRefusedError, requests.exceptions.ConnectionError, MaxRetryError) as e:
+        logger.error(f"Polling connection failed: The server did not respond")
+        return 'break'
+    except Exception as e:
+        logger.error(f"An unexpected error occurred while polling the server: {str(e)}")
+        return 'break'
+    else:
+        content_type = response.headers.get('content-type').split(";")[0].lower()  
 
-    content_type = response.headers.get('content-type').split(";")[0].lower()
-    """
-    encoding = None
-    if response.headers.get('content-encoding'):
-        encoding = response.headers.get('content-encoding').split(";")[0].lower()
-    print(f'content-encoding is {encoding}')
-    """
-
-    print(f'receiving response took {time.perf_counter() - start_time}')
+    logger.debug(f'receiving response took {time.perf_counter() - start_time}')
     
     if content_type == 'text/html':
-        print(content_type, response.content)
+        logger.error(content_type, response.content)
     if content_type == 'text/plain':
-        # print(content_type, response.content)
         if response.content == b"processing_ended":
-            print('received "ended processing"')
+            logger.info('received "ended processing"')
             outfile_writer.release()
             remux_audio()
             return 'break'
         elif response.content == b"long_polling_timeout":
-            print('long_polling timeout')
+            logger.info('long_polling timeout')
             return 'continue'
     elif content_type == 'application/octet-stream':
-        print('octet-stream returned')
+        logger.info('octet-stream returned')
         handle_img_batch(response.content)
+        return 'continue'
 
 def send_messages():
     global outfile_writer
@@ -89,7 +97,6 @@ def send_messages():
     if os.path.exists(temp_videofile):
         os.remove(temp_videofile)
     
-    # """
     while True:
         return_value = poll_server(ngrok_url)
         if return_value == 'break':
@@ -97,58 +104,48 @@ def send_messages():
             break
         elif return_value == 'continue':
              continue
-    # """
     
-    print('transmission ended')
-
-    # Old strategy, before streaming upload of the audio: re-implement if you wish
-    """
-    command = (f'Invoke-WebRequest \
-                -Uri "{ngrok_url}" \
-                -Method POST \
-                -Form @{{"file" = Get-Item "{record_audio.FILENAME}"}}')
-    
-    subprocess.call([
-        "pwsh", 
-        "-Command",
-        command])
-    
-    command = (f'Invoke-WebRequest \
-                -Uri "{ngrok_url}/{server_path}{outfile}" \
-                -Method GET \
-                -Headers @{{"ngrok-skip-browser-warning" = "true"}} \
-                -OutFile {media_folder}{outfile}')
-    
-    subprocess.call([
-        "pwsh", 
-        "-Command",
-        command])
-    """
+    logger.info('transmission ended')
 
     data = {"processed_file": f"{output_path}"}
     serialized_data = json.dumps(data).encode('utf-8')
-    client.sendall(serialized_data)
+    try:
+        client.sendall(serialized_data)
+    except:
+        pass
 
 def listen_indefinitely():
     try:
-        while not record_audio.stop_recording.is_set():
-            time.sleep(1)
+        while True:
+            while not record_audio.stop_recording.is_set():
+                time.sleep(1)
 
-        record_audio.stop_recording.clear()
-        send_messages()
-        listen_indefinitely()
+            record_audio.stop_recording.clear()
+            send_messages()
 
+    except Exception as e:
+        logger.error(f'Unknown error in the client worker : {e}')
     except KeyboardInterrupt:
         record_audio.stop_recording.clear()
+
+
+# Register the cleanup function to run on script termination
+atexit.register(lambda : close_client_socket(client))
+
 
 if __name__ == "__main__":
     keyboard_listener()
     # """
     try:
         client.connect(("localhost", 9999))
-        print("Connected to server.")
+        logger.info("Connected to video playback socket.")
     except KeyboardInterrupt:
-        client.close()
+        close_client_socket()
+    except (ConnectionResetError, ConnectionRefusedError):
+        logger.error("Connection refused : Unable to connect to video playback socket.")
+    except Exception as e:
+        logger.error(f"Failed to connect to video playback socket: {e}")
+        close_client_socket(client)
     # """
     listen_indefinitely()
     

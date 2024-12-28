@@ -3,6 +3,8 @@ import threading
 import time
 import record_audio
 
+from logger import logger
+
 # A flag to control the processing
 processing = False
 
@@ -10,7 +12,7 @@ processing = False
 def start_processing(event):
     global processing
     if not processing:
-        print(f"{event.name} key pressed! Starting processing...")
+        logger.info(f"{event.name} key pressed! Starting processing...")
         processing = True
         threading.Thread(target=record_audio.start_recording).start()  # Run the processing in a separate thread
 
@@ -18,7 +20,7 @@ def start_processing(event):
 def stop_processing(event):
     global processing
     if processing:
-        print(f"{event.name} key released! Stopping processing...")
+        logger.info(f"{event.name} key released! Stopping processing...")
         processing = False
         record_audio.stop_recording.set()
 
@@ -28,5 +30,5 @@ def keyboard_listener():
     keyboard.on_release_key('f9', stop_processing)
 
     # Keep the script running
-    print("Press and hold F9 to start processing, release to stop.")
+    logger.info("Press and hold F9 to start processing, release to stop.")
     # keyboard.wait('esc')  # The script will exit when 'esc' is pressed

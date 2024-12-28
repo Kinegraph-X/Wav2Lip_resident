@@ -4,6 +4,9 @@ import requests, json, socket
 session = requests.Session()
 import http.client
 
+from logger import logger
+
+"""
 distant_url = args.ngrok_addr.split(':')
 
 if len(distant_url) < 3:
@@ -12,9 +15,11 @@ else:
     port = distant_url[2]
 
 distant_url = distant_url[1][2:]
-# conn = http.client.HTTPConnection(f'{distant_url}', port)
-# conn.connect()
-# conn.set_debuglevel(1)
+conn = http.client.HTTPConnection(f'{distant_url}', port)
+conn.connect()
+conn.set_debuglevel(1)
+"""
+
 import queue
 import sounddevice as sd
 import wave
@@ -66,24 +71,27 @@ def send_audio_chunks():
                 "X-Channels": str(CHANNELS),
             }
 
-            req_thread = threading.Thread(target = handle_request, args = (headers, audio_chunk))
-            req_thread.start()
+            try:
+                req_thread = threading.Thread(target = handle_request, args = (headers, audio_chunk))
+                req_thread.start()
 
-            print(f"Audio chunks {audio_chunk_idx} sent successfully.")
+                logger.info(f"Audio chunks {audio_chunk_idx} sent successfully.")
+            except:
+                logger.info('POST Audio request failed : the server might not be running')
 
         time.sleep(.1)
 
 def handle_request(headers, audio_chunk):
     response = session.post(url, data=audio_chunk, headers=headers)
-    print(response.content)
+    logger.info("server responded : " + response.content.decode('utf-8'))
 
 def record_callback(indata, frames, timestamp, status):
     global wf, audio_chunk_idx
-    print(f'frame received {len(indata)}')
+    logger.debug(f'frame received {len(indata)}')
     
     """Callback function to handle incoming audio data."""
     if status:
-        print(f"Status: {status}", flush=True)  # Print warnings/errors from the stream
+        logger.error(f"Status: {status}", flush=True)  # Print warnings/errors from the stream
 
     audio_chunk = np.int16(indata * 32767).tobytes()
 
@@ -97,7 +105,7 @@ def start_recording():
     global audio_chunk_idx, session
     """Starts the recording indefinitely until stopped."""
     audio_chunk_idx = 0
-    print("Recording... release key to stop.")
+    logger.info("Recording... release key to stop.")
 
     global wf
     # Open the WAV file for writing
@@ -136,11 +144,11 @@ def start_recording():
         # """
         try:
             response = session.post( url, data=None, headers=headers)
-            print(response.content)
+            logger.info("server responded : " + response.content.decode('utf-8'))
         except Exception as e:
             print(e.args)
         # """
 
-        print("Recording stopped.")
+        logger.info("Recording stopped.")
         # """
         wf.close()

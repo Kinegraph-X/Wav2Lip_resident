@@ -1,4 +1,5 @@
-import threading, queue, json, time
+import multiprocessing, threading, signal, queue, json, time
+import atexit
 from workers_server import start_server
 from hparams import hparams
 

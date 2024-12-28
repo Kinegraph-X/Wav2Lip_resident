@@ -1,3 +1,3 @@
 nircmd win close ititle "Lightning_AI"
-nircmd win close ititle "Worker"
-nircmd win close ititle "Mini-E_B_U"
+nircmd win close ititle "Local_Worker"
+nircmd win close ititle "Mini-Me"
