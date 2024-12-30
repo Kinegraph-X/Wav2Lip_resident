@@ -1,3 +1,5 @@
+PyInstaller
+pyinstaller-hooks-contrib
 python-vlc
 keyboard==0.13.5
 sounddevice===0.5.1

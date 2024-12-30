@@ -30,6 +30,7 @@ outfile = output_path.split("/")[-1]
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 start_time = 0
+retry_count = 0
 
 def remux_audio():
     command = 'ffmpeg -nostdin -y -i {} -i {} -strict -2 -c:v copy {}'.format(hparams.local_audio_filename, temp_videofile, output_path)
@@ -54,7 +55,7 @@ def handle_img_batch(images):
 
 def poll_server(ngrok_url):
     logger.debug('polling server')
-    global start_time, outfile_writer
+    global start_time, outfile_writer, retry_count
     start_time = time.perf_counter()
 
     # threading requests may not be necessary, but let's keep that principle as an example in our codebase
@@ -83,14 +84,18 @@ def poll_server(ngrok_url):
             return 'break'
         elif response.content == b"long_polling_timeout":
             logger.info('long_polling timeout')
-            return 'continue'
+            retry_count += 1
+            if retry_count < hparams.max_polling_retry:
+                return 'continue'
+            else:
+                return 'break'
     elif content_type == 'application/octet-stream':
         logger.info('octet-stream returned')
         handle_img_batch(response.content)
         return 'continue'
 
 def send_messages():
-    global outfile_writer
+    global outfile_writer, retry_count
 
     ngrok_url = args.ngrok_addr
 
@@ -101,6 +106,7 @@ def send_messages():
         return_value = poll_server(ngrok_url)
         if return_value == 'break':
             outfile_writer = None
+            retry_count = 0
             break
         elif return_value == 'continue':
              continue

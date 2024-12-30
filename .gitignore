@@ -3,6 +3,8 @@ media/*.*
 recordings/*.*
 temp/*.*
 demo/
+dist/
+build/
 
 !Avatar_Small_Local.mp4
 !readme.md

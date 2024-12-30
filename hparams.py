@@ -18,7 +18,7 @@ class HParams:
 
 # Default hyperparameters
 hparams = HParams(
-
+	max_polling_retry = 3,
 	fps = 25,
 	resolution = (480, 270),
 	media_folder = "media/",
