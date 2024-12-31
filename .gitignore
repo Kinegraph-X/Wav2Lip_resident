@@ -5,6 +5,10 @@ temp/*.*
 demo/
 dist/
 build/
+Avatar_runner.build/
+Avatar_runner.dist/
+Avatar_video_playback.build/
+Avatar_video_playback.dist/
 
 !Avatar_Small_Local.mp4
 !readme.md

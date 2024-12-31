@@ -1,3 +1,13 @@
+# nuitka-project: --product-name=Avatar_runner
+# nuitka-project: --product-version=1.0.0
+# nuitka-project: --file-description="An AI powered talking avatar (runner module)"
+# nuitka-project: --copyright="Kinegraphx"
+
+# nuitka-project: --include-data-files=media/readme.md=media/
+# nuitka-project: --include-data-files=temp/readme.md=temp/
+# nuitka-project: --include-data-files=recordings/readme.md=recordings/
+# nuitka-project: --windows-console-mode=disable
+
 from args_parser import args
 import os, platform, socket, cv2
 import atexit
@@ -141,7 +151,7 @@ atexit.register(lambda : close_client_socket(client))
 
 if __name__ == "__main__":
     keyboard_listener()
-    # """
+
     try:
         client.connect(("localhost", 9999))
         logger.info("Connected to video playback socket.")
@@ -152,6 +162,6 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"Failed to connect to video playback socket: {e}")
         close_client_socket(client)
-    # """
+
     listen_indefinitely()
     

@@ -28,11 +28,9 @@ class VideoPlayer:
         self._set_video_output()
 
         # Bind VLC events
-        self.media_player.event_manager().event_attach(
-            vlc.EventType.MediaPlayerEndReached, self.on_video_end
-        )
-
-        # signal.signal(signal.SIGTERM, self.close_player)
+        # self.media_player.event_manager().event_attach(
+        #     vlc.EventType.MediaPlayerEndReached, self.on_video_end
+        # )
     
     def close_player(self):
         self.root.after(0, lambda: print('close signal received'))
@@ -56,12 +54,10 @@ class VideoPlayer:
             pass
 
     def _set_video_output(self):
-        """Set up the VLC video output to use the Tkinter canvas."""
         window_id = self.canvas.winfo_id()
         self.media_player.set_hwnd(window_id)
 
     def play_video(self, video_path): # , loop=False
-        """Load and play a video."""
         media = self.vlc_instance.media_new(video_path)
         
         self.media_player.set_media(media)
@@ -85,15 +81,12 @@ class VideoPlayer:
 
     def on_video_end(self, event):
         self.root.after(0, lambda: print("video_ended"))
-        """Callback for when a video ends."""
         if self.is_reading_lipsync:
-            # Resume playing the looping video
             self.is_reading_lipsync = False
             self.play_video(self.looping_video_path) # , loop=True
 
     def switch_to_video(self, path):
         self.root.after(0, lambda: print(f"playing new video file : {path}"))
-        """Play the lipsynced video once."""
         self.is_reading_lipsync = True
         self.play_video(path)
 

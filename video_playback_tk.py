@@ -82,12 +82,10 @@ def process_queue():
             new_video_path = json.loads(message_queue.get())["processed_file"]
             print(f"Processing new video path: {new_video_path}")
 
-            # """
             extract_audio(new_video_path, hparams.audio_only_path)
 
             while not audio_processing_done.is_set():
                 time.sleep(1)
-            # """
 
             # Load and play the new video on the main thread
             

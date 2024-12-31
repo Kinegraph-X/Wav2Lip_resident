@@ -1,24 +1,9 @@
 from args_parser import args
 from hparams import hparams
-import requests, json, socket
+import requests
 session = requests.Session()
-import http.client
 
 from logger import logger
-
-"""
-distant_url = args.ngrok_addr.split(':')
-
-if len(distant_url) < 3:
-    port = None
-else:
-    port = distant_url[2]
-
-distant_url = distant_url[1][2:]
-conn = http.client.HTTPConnection(f'{distant_url}', port)
-conn.connect()
-conn.set_debuglevel(1)
-"""
 
 import queue
 import sounddevice as sd
@@ -32,14 +17,7 @@ CHANNELS = 1         # 1 for mono, 2 for stereo
 FILENAME = hparams.local_audio_filename
 BLOCK_SIZE = 8192
 
-"""
-import logging
-logging.basicConfig()
-logging.getLogger().setLevel(logging.DEBUG)
-requests_log = logging.getLogger("requests")
-requests_log.setLevel(logging.DEBUG)
-requests_log.propagate = True
-"""
+
 
 url = args.ngrok_addr
 stop_recording = threading.Event()
@@ -50,7 +28,7 @@ audio_queue = queue.Queue()  # Queue for audio chunks
 
 def send_audio_chunks():
     
-    """Thread to handle sending audio chunks to the server."""
+    # Thread to handle sending audio chunks to the server.
     while True:
 
         if not audio_queue.empty():
@@ -89,7 +67,7 @@ def record_callback(indata, frames, timestamp, status):
     global wf, audio_chunk_idx
     logger.debug(f'frame received {len(indata)}')
     
-    """Callback function to handle incoming audio data."""
+    # Callback function to handle incoming audio data.
     if status:
         logger.error(f"Status: {status}", flush=True)  # Print warnings/errors from the stream
 
@@ -103,7 +81,7 @@ def record_callback(indata, frames, timestamp, status):
 
 def start_recording():
     global audio_chunk_idx, session
-    """Starts the recording indefinitely until stopped."""
+    # Starts the recording indefinitely until stopped.
     audio_chunk_idx = 0
     logger.info("Recording... release key to stop.")
 
@@ -119,7 +97,6 @@ def start_recording():
     sender_thread.start()
 
     try:
-        # """
         # Start the input stream with the callback
         with sd.InputStream(
             samplerate=SAMPLE_RATE,
@@ -141,14 +118,11 @@ def start_recording():
             "X-Sample-Rate": str(SAMPLE_RATE),
             "X-Channels": str(CHANNELS),
         }
-        # """
         try:
             response = session.post( url, data=None, headers=headers)
             logger.info("server responded : " + response.content.decode('utf-8'))
         except Exception as e:
             print(e.args)
-        # """
 
         logger.info("Recording stopped.")
-        # """
         wf.close()
