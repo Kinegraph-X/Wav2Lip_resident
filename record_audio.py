@@ -117,6 +117,7 @@ def start_recording():
             "X-Audio-Chunk-Timestamp": 'EOF',
             "X-Sample-Rate": str(SAMPLE_RATE),
             "X-Channels": str(CHANNELS),
+            "X-Avatar-Type" : args.avatar_type
         }
         try:
             response = session.post( url, data=None, headers=headers)

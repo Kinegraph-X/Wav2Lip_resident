@@ -11,4 +11,6 @@ Avatar_video_playback.build/
 Avatar_video_playback.dist/
 
 !Avatar_Small_Local.mp4
+!Avatar_generic_man.mp4
+!Avatar_generic_woman.mp4
 !readme.md

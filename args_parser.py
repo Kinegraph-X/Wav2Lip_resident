@@ -6,4 +6,8 @@ parser.add_argument('--ngrok_addr', type=str,
                     required=False,
                     default='http://127.0.0.1:3000'
                     )
+parser.add_argument('--avatar_type', type=str, 
+					help='The avater base video that the server shall be using',
+                    required=True
+                    )
 args = parser.parse_args()

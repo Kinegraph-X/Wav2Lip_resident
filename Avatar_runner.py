@@ -4,6 +4,8 @@
 # nuitka-project: --copyright="Kinegraphx"
 
 # nuitka-project: --include-data-files=media/readme.md=media/
+# nuitka-project: --include-data-files=media/Avatar_generic*=media/
+# nuitka-project: --include-data-files=media/Avatar_Small_Local.mp4=media/
 # nuitka-project: --include-data-files=temp/readme.md=temp/
 # nuitka-project: --include-data-files=recordings/readme.md=recordings/
 # nuitka-project: --windows-console-mode=disable
