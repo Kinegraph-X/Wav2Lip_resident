@@ -19,7 +19,7 @@ BLOCK_SIZE = 8192
 
 
 
-url = args.ngrok_addr
+url = args.server_addr
 stop_recording = threading.Event()
 
 wf = None

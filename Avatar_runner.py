@@ -65,13 +65,14 @@ def handle_img_batch(images):
     except Exception as e:
         print(e)
 
-def poll_server(ngrok_url):
+def poll_server(server_url):
     logger.debug('polling server')
     global start_time, outfile_writer, retry_count
     start_time = time.perf_counter()
 
     # threading requests may not be necessary, but let's keep that principle as an example in our codebase
-    request_thread = ThreadWithReturnValue(target = session.get, args = (ngrok_url,), kwargs = {"params" : {"next_batch" : 'True'}})
+    request_thread = ThreadWithReturnValue(target = session.get, args = (server_url,), kwargs = {"params" : {"next_batch" : 'True'}})
+    content_type = None
     try:
         request_thread.start()
         response = request_thread.join()
@@ -82,10 +83,14 @@ def poll_server(ngrok_url):
         logger.error(f"An unexpected error occurred while polling the server: {str(e)}")
         return 'break'
     else:
-        content_type = response.headers.get('content-type').split(";")[0].lower()  
+        if response.headers.get('content-type'):
+            content_type = response.headers.get('content-type').split(";")[0].lower()  
 
     logger.debug(f'receiving response took {time.perf_counter() - start_time}')
     
+    if not content_type:
+        raise Exception('Content-Type is missing in the response')
+
     if content_type == 'text/html':
         logger.error(content_type, response.content)
     if content_type == 'text/plain':
@@ -109,13 +114,13 @@ def poll_server(ngrok_url):
 def send_messages():
     global outfile_writer, retry_count
 
-    ngrok_url = args.ngrok_addr
+    server_url = args.server_addr
 
     if os.path.exists(temp_videofile):
         os.remove(temp_videofile)
     
     while True:
-        return_value = poll_server(ngrok_url)
+        return_value = poll_server(server_url)
         if return_value == 'break':
             outfile_writer = None
             retry_count = 0
