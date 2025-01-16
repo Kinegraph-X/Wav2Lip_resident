@@ -47,8 +47,8 @@ retry_count = 0
 def remux_audio():
     command = 'ffmpeg -nostdin -y -i {} -i {} -strict -2 -c:v copy {}'.format(hparams.local_audio_filename, temp_videofile, output_path)
     print(command)
-    subprocess.call(command, shell=platform.system() != 'Windows', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-    # subprocess.call(command, shell=platform.system() != 'Windows', stderr=subprocess.STDOUT)
+    # subprocess.call(command, shell=platform.system() != 'Windows', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    subprocess.call(command, shell=platform.system() != 'Windows', stderr=subprocess.STDOUT)
     logger.debug(f'Video file saved to {output_path}')
 
 def handle_img_batch(images):
@@ -151,17 +151,40 @@ def listen_indefinitely():
     except KeyboardInterrupt:
         record_audio.stop_recording.clear()
 
+def wait_for_playback_socket():
+    # Wait for the playback socket to become ready using the synchronization socket.
+    sync_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sync_client.connect(("localhost", 65432))
+        logger.info("Client Connected to orchestrator synchronization socket.")
+        # Send a request to check if the playback socket is ready
+        try:
+            sync_client.sendall("IS_READY".encode('utf-8'))
+        except Exception as e:
+            logger.error(f"Failed to send 'IS_READY': {e}")
+        while True:
+            response = sync_client.recv(1024).decode('utf-8')
+            if response == "READY":
+                logger.info("Playback socket is ready.")
+                break
+            time.sleep(0.1)  # Retry after a short delay
+    except Exception as e:
+        logger.error(f"Error connecting to synchronization socket: {e}")
+    finally:
+        sync_client.close()
 
 # Register the cleanup function to run on script termination
 atexit.register(lambda : close_client_socket(client))
 
 
 if __name__ == "__main__":
-    keyboard_listener()
+    
+    wait_for_playback_socket()
 
     try:
         client.connect(("localhost", 9999))
         logger.info("Connected to video playback socket.")
+        keyboard_listener()
     except KeyboardInterrupt:
         close_client_socket()
     except (ConnectionResetError, ConnectionRefusedError):

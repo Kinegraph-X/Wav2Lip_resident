@@ -1,4 +1,5 @@
 __pycache__/
+fosterseth_video_player/
 media/*.*
 recordings/*.*
 temp/*.*
@@ -13,4 +14,6 @@ Avatar_video_playback.dist/
 !Avatar_Small_Local.mp4
 !Avatar_generic_man.mp4
 !Avatar_generic_woman.mp4
+!Avatar_generic_man_alternative.mp4
+!Avatar_generic_woman_alternative.mp4
 !readme.md
